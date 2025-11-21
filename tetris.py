@@ -35,7 +35,7 @@ COLORS = [
     (255, 0, 0),
 ]
 
-SPEEDS = {"SLOW": 800, "NOMAL": 500, "FAST": 200}
+SPEEDS = {"SLOW": 800, "NORMAL": 500, "FAST": 200}
 
 # ブロッククラス
 
@@ -85,19 +85,44 @@ def main():
     block = Block()
     fall_time = 0
 
+    current_speed_name = "NORMAL"
+    fall_interval = SPEEDS[current_speed_name]
+
     running = True
+
+    font = pygame.font.Font(None, 24)
+
+    # スピードボタンの配置
+    button_width = 80
+    button_height = 30
+    margin = 15
+
+    speed_buttons = {}
+    x = margin
+    for name in ["SLOW", "NORMAL", "FAST"]:
+        speed_buttons[name] = pygame.Rect(x, margin, button_width, button_height)
+        x += button_width + margin
 
     while running:
         screen.fill((0, 0, 0))
-        fall_time += clock.get_rawtime()
-        clock.tick(60)
+        dt = clock.tick(60)
+        fall_time += dt
+
+        # fall_time += clock.get_rawtime()
+        # clock.tick(60)
 
         # 操作
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mx, my = event.pos
+                for name, rect in speed_buttons.items():
+                    if rect.collidepoint(mx, my):
+                        current_speed_name = name
+                        fall_interval = SPEEDS[name]
             elif event.type == pygame.KEYDOWN:
-                old_x, old_y = block.x, block.y
                 if event.key == pygame.K_LEFT:
                     block.x -= 1
                     if not valid_position(grid, block):
@@ -117,10 +142,11 @@ def main():
                         block.shape = old_shape
 
         # 自動落下
-        if fall_time > 500:
+        if fall_time > fall_interval:
             block.y += 1
             if not valid_position(grid, block):
                 block.y -= 1
+
                 for y, row in enumerate(block.shape):
                     for x, cell in enumerate(row):
                         if cell:
@@ -137,7 +163,7 @@ def main():
         # 描画、固定されたブロック
         for y in range(ROWS):
             for x in range(COLS):
-                if grid[y][x]:
+                if grid[y][x] != 0:
                     color = COLORS[grid[y][x]]
                     pygame.draw.rect(
                         screen, color, (x * BLOCK, y * BLOCK, BLOCK, BLOCK)
@@ -153,7 +179,30 @@ def main():
                         block.color,
                         ((block.x + x) * BLOCK, (block.y + y) * BLOCK, BLOCK, BLOCK),
                     )
-        pygame.display.update()
+
+            # labels = [("SLOW", "1"), ("NORMAL", "2"), ("FAST", "3")]
+            #    x = 10
+            #    y = 10
+
+            # ---------- スピードボタン描画 ----------
+            for name, rect in speed_buttons.items():
+                if name == current_speed_name:
+                    bg_color = (255, 100, 50)
+                    text_color = (255, 255, 255)
+                else:
+                    bg_color = (60, 60, 60)
+                    text_color = (255, 255, 255)
+
+                pygame.draw.rect(screen, bg_color, rect)
+
+                label = font.render(name, True, text_color)
+
+                label_pos = label.get_rect(center=rect.center)
+                screen.blit(label, label_pos)
+
+                # x += text_surface.get_width() + 20
+
+            pygame.display.update()
 
 
 # 実行
